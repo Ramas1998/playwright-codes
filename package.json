@@ -1,0 +1,41 @@
+{
+  "name": "playwright-flaky-guardian",
+  "version": "0.1.0",
+  "description": "Flaky test analyzer and dashboard for Playwright Test.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "flaky-guardian": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "dev:dashboard": "ts-node src/dashboard/server.ts",
+    "start:dashboard": "node dist/dashboard/server.js",
+    "lint": "echo \"add eslint later\"",
+    "test": "echo \"no tests yet\""
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "flaky",
+    "reporter",
+    "dashboard"
+  ],
+  "author": "Premsena Reddy",
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@playwright/test": ">=1.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.0"
+  }
+}
