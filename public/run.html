@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flaky Guardian — Run Details</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+      color: #333;
+    }
+
+    h1, h2, h3 {
+      color: #333;
+    }
+
+    a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumbs {
+      margin-bottom: 10px;
+    }
+
+    .breadcrumbs a {
+      font-size: 14px;
+    }
+
+    .run-meta {
+      background: #ffffff;
+      border: 1px solid #ddd;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+
+    .badge-passed { background: #e7ffe7; color: #006600; }
+    .badge-failed { background: #ffe7e7; color: #c60000; }
+    .badge-flaky  { background: #fff2cc; color: #8a6d00; }
+
+    /* Tabs */
+    .tabs {
+      margin-top: 20px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .tab-button {
+      border: none;
+      background: #eee;
+      padding: 10px 16px;
+      cursor: pointer;
+      margin-right: 4px;
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+      font-size: 14px;
+    }
+
+    .tab-button.active {
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-bottom-color: #ffffff;
+      border-bottom-width: 0;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-top: none;
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+      margin-bottom: 32px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f2f2f2;
+    }
+
+    tr.test-row {
+      cursor: pointer;
+    }
+
+    tr.test-row:hover {
+      background: #fafafa;
+    }
+
+    tr.error-row {
+      background: #fffdf2;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-right: 3px;
+    }
+
+    .status-passed {
+      background: #e7ffe7;
+      color: #006600;
+    }
+
+    .status-failed {
+      background: #ffe7e7;
+      color: #c60000;
+    }
+
+    .status-timedOut {
+      background: #ffe9d6;
+      color: #a84300;
+    }
+
+    .status-skipped {
+      background: #f0f0f0;
+      color: #666666;
+    }
+
+    .flaky-label {
+      font-weight: bold;
+      color: #c77f00;
+    }
+
+    .stable-label {
+      color: #2c7a2c;
+    }
+
+    .failed-label {
+      color: #c60000;
+    }
+
+    pre.error-block {
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      background: #2b2b2b;
+      color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow: auto;
+    }
+
+    .error-count {
+      font-size: 11px;
+      color: #c60000;
+      font-weight: bold;
+    }
+
+    .vscode-link {
+      font-size: 12px;
+      margin-left: 4px;
+    }
+
+    /* Heatmap */
+    .heatmap-legend {
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 10px;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      margin-right: 4px;
+      border-radius: 2px;
+      border: 1px solid #ccc;
+    }
+
+    .heatmap-table td {
+      text-align: center;
+      padding: 4px;
+      font-size: 11px;
+    }
+
+    .heatmap-cell {
+      width: 22px;
+      height: 22px;
+      border-radius: 2px;
+      border: 1px solid #ddd;
+    }
+
+    .heatmap-passed { background: #b7f5b7; }
+    .heatmap-failed { background: #ffb3b3; }
+    .heatmap-timedOut { background: #ffd9b3; }
+    .heatmap-skipped { background: #e0e0e0; }
+    .heatmap-unknown { background: #f5f5f5; }
+
+    /* Raw JSON area */
+    #raw-json {
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 12px;
+      white-space: pre;
+      background: #1e1e1e;
+      color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      max-height: 400px;
+      overflow: auto;
+    }
+
+    .charts-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .chart-card {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px;
+    }
+
+    .chart-card h3 {
+      font-size: 14px;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="breadcrumbs">
+    <a href="/">← Back to Dashboard</a>
+  </div>
+
+  <h1>🛡️ Flaky Guardian — Run Details</h1>
+
+  <div id="run-meta" class="run-meta">
+    Loading run details…
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-button active" data-tab="overview">Overview</button>
+    <button class="tab-button" data-tab="tests">Tests</button>
+    <button class="tab-button" data-tab="heatmap">Heatmap</button>
+    <button class="tab-button" data-tab="raw">Raw JSON</button>
+  </div>
+
+  <!-- Overview Tab -->
+  <div id="tab-overview" class="tab-content active">
+    <h2>Run Overview</h2>
+    <p id="overview-summary">Loading…</p>
+
+    <div class="charts-container">
+      <div class="chart-card">
+        <h3>Stability Distribution</h3>
+        <canvas id="distributionChart" height="140"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Test Duration (sorted)</h3>
+        <canvas id="durationChart" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tests Tab -->
+  <div id="tab-tests" class="tab-content">
+    <h2>Tests in This Run</h2>
+    <p>Click a row to expand and view full error stack(s). VSCode links will try to open the file if your system is configured.</p>
+    <table id="tests-table">
+      <thead>
+        <tr>
+          <th>Test</th>
+          <th>File</th>
+          <th>Attempts</th>
+          <th>Status History</th>
+          <th>Flakiness</th>
+          <th>Duration (ms)</th>
+          <th>Errors</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Heatmap Tab -->
+  <div id="tab-heatmap" class="tab-content">
+    <h2>Test × Attempt Heatmap</h2>
+
+    <div class="heatmap-legend">
+      <span class="legend-item">
+        <span class="legend-color heatmap-passed"></span> passed
+      </span>
+      <span class="legend-item">
+        <span class="legend-color heatmap-failed"></span> failed
+      </span>
+      <span class="legend-item">
+        <span class="legend-color heatmap-timedOut"></span> timedOut
+      </span>
+      <span class="legend-item">
+        <span class="legend-color heatmap-skipped"></span> skipped
+      </span>
+    </div>
+
+    <table id="heatmap-table" class="heatmap-table">
+      <thead id="heatmap-head"></thead>
+      <tbody id="heatmap-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Raw JSON Tab -->
+  <div id="tab-raw" class="tab-content">
+    <h2>Raw Run Payload</h2>
+    <div id="raw-json">Loading…</div>
+  </div>
+
+  <script>
+    let currentRun = null;
+    let distributionChart = null;
+    let durationChart = null;
+
+    function getRunIdFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("runId");
+    }
+
+    function setActiveTab(tabName) {
+      document
+        .querySelectorAll(".tab-button")
+        .forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.tab === tabName);
+        });
+
+      document
+        .querySelectorAll(".tab-content")
+        .forEach((content) => {
+          content.classList.toggle(
+            "active",
+            content.id === "tab-" + tabName
+          );
+        });
+    }
+
+    function initTabs() {
+      document.querySelectorAll(".tab-button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          setActiveTab(btn.dataset.tab);
+        });
+      });
+    }
+
+    function formatDuration(ms) {
+      if (ms == null) return "-";
+      return ms.toFixed(0);
+    }
+
+    function vscodeLinkFor(file, line) {
+      if (!file) return "";
+      const safeLine = line && !isNaN(line) ? line : 1;
+      const uri = `vscode://file/${encodeURIComponent(file)}:${safeLine}`;
+      return `<a class="vscode-link" href="${uri}">Open in VSCode</a>`;
+    }
+
+    function renderRunMeta(run) {
+      const start = run.startTime ? new Date(run.startTime) : null;
+      const end = run.endTime ? new Date(run.endTime) : null;
+      const durationMs = start && end ? (end - start) : null;
+
+      const testCount = run.tests?.length || 0;
+      const flakyCount = run.tests?.filter(t => t.flakiness === "flaky").length || 0;
+      const failedCount = run.tests?.filter(t => t.flakiness === "failed").length || 0;
+      const stableCount = testCount - flakyCount - failedCount;
+
+      let statusBadgeClass = "badge-passed";
+      if (run.status === "failed") statusBadgeClass = "badge-failed";
+
+      const html = `
+        <div><strong>Run ID:</strong> ${run.runId}
+          <span class="badge ${statusBadgeClass}">${run.status}</span>
+        </div>
+        <div><strong>Start:</strong> ${start ? start.toLocaleString() : "-"}</div>
+        <div><strong>End:</strong> ${end ? end.toLocaleString() : "-"}</div>
+        <div><strong>Duration:</strong> ${durationMs != null ? durationMs + " ms" : "-"}</div>
+        <div><strong>Tests:</strong> ${testCount}
+          &nbsp;|&nbsp;
+          <span class="stable-label">Stable: ${stableCount}</span>,
+          <span class="flaky-label">Flaky: ${flakyCount}</span>,
+          <span class="failed-label">Failed: ${failedCount}</span>
+        </div>
+      `;
+
+      document.getElementById("run-meta").innerHTML = html;
+    }
+
+    function renderOverviewSummary(run) {
+      const testCount = run.tests?.length || 0;
+      const flakyCount = run.tests?.filter(t => t.flakiness === "flaky").length || 0;
+      const failedCount = run.tests?.filter(t => t.flakiness === "failed").length || 0;
+      const stableCount = testCount - flakyCount - failedCount;
+
+      const start = run.startTime ? new Date(run.startTime) : null;
+      const end = run.endTime ? new Date(run.endTime) : null;
+      const durationMs = start && end ? (end - start) : null;
+
+      const text = `
+        Run <strong>${run.runId}</strong> has <strong>${testCount}</strong> tests:
+        <span class="stable-label"> ${stableCount} stable</span>,
+        <span class="flaky-label"> ${flakyCount} flaky</span>,
+        <span class="failed-label"> ${failedCount} failed</span>.
+        Total duration: <strong>${durationMs != null ? durationMs + " ms" : "-"}</strong>.
+      `;
+
+      document.getElementById("overview-summary").innerHTML = text;
+    }
+
+    function renderTestsTable(run) {
+      const tbody = document.querySelector("#tests-table tbody");
+      tbody.innerHTML = "";
+
+      if (!run.tests || !run.tests.length) {
+        tbody.innerHTML = `<tr><td colspan="7">No tests found in this run.</td></tr>`;
+        return;
+      }
+
+      run.tests.forEach((t, index) => {
+        const tr = document.createElement("tr");
+        tr.className = "test-row";
+        tr.dataset.errorRowId = "error-row-" + index;
+
+        const statusesHtml = t.statuses
+          .map((s) => {
+            const cls = "status-" + s;
+            return `<span class="status-pill ${cls}">${s}</span>`;
+          })
+          .join(" ");
+
+        let flakinessLabel = "";
+        if (t.flakiness === "flaky") {
+          flakinessLabel = `<span class="flaky-label">flaky</span>`;
+        } else if (t.flakiness === "failed") {
+          flakinessLabel = `<span class="failed-label">failed</span>`;
+        } else {
+          flakinessLabel = `<span class="stable-label">stable</span>`;
+        }
+
+        const errorCount = (t.errors && t.errors.length) || 0;
+        const errorInfo = errorCount
+          ? `<span class="error-count">${errorCount} error(s)</span>`
+          : "-";
+
+        tr.innerHTML = `
+          <td>${t.fullTitle || t.title}</td>
+          <td>
+            ${t.file || "-"}
+            ${vscodeLinkFor(t.file, t.line)}
+          </td>
+          <td>${t.attempts ?? t.statuses?.length ?? "-"}</td>
+          <td>${statusesHtml}</td>
+          <td>${flakinessLabel}</td>
+          <td>${formatDuration(t.duration)}</td>
+          <td>${errorInfo}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+        // Error row (hidden by default)
+        const errorTr = document.createElement("tr");
+        errorTr.id = "error-row-" + index;
+        errorTr.className = "error-row hidden";
+
+        const errors = t.errors || [];
+        const errorHtml =
+          errors.length === 0
+            ? "<em>No errors recorded for this test.</em>"
+            : errors
+                .map((e, idx) => {
+                  let text =
+                    (e && (e.stack || e.message)) ||
+                    JSON.stringify(e, null, 2);
+                  return `<h4>Error #${idx + 1}</h4><pre class="error-block">${escapeHtml(text)}</pre>`;
+                })
+                .join("<hr/>");
+
+        errorTr.innerHTML = `
+          <td colspan="7">
+            <strong>Error details for:</strong> ${t.fullTitle || t.title}
+            <div style="margin-top: 8px;">${errorHtml}</div>
+          </td>
+        `;
+
+        tbody.appendChild(errorTr);
+      });
+
+      // Click handler to toggle error rows
+      tbody.querySelectorAll("tr.test-row").forEach((row) => {
+        row.addEventListener("click", () => {
+          const id = row.dataset.errorRowId;
+          const errorRow = document.getElementById(id);
+          if (!errorRow) return;
+          errorRow.classList.toggle("hidden");
+        });
+      });
+    }
+
+    function renderHeatmap(run) {
+      const head = document.getElementById("heatmap-head");
+      const body = document.getElementById("heatmap-body");
+      head.innerHTML = "";
+      body.innerHTML = "";
+
+      if (!run.tests || !run.tests.length) {
+        body.innerHTML = `<tr><td>No tests found.</td></tr>`;
+        return;
+      }
+
+      // Determine max attempts across tests
+      const maxAttempts = run.tests.reduce((max, t) => {
+        const attempts = t.attempts ?? (t.statuses ? t.statuses.length : 0);
+        return Math.max(max, attempts);
+      }, 0);
+
+      // Header row
+      const headerRow = document.createElement("tr");
+      headerRow.innerHTML = `<th>Test</th>` +
+        Array.from({ length: maxAttempts })
+          .map((_, i) => `<th>A${i + 1}</th>`)
+          .join("");
+      head.appendChild(headerRow);
+
+      // Body rows
+      run.tests.forEach((t) => {
+        const tr = document.createElement("tr");
+        const titleCell = document.createElement("td");
+        titleCell.textContent = t.fullTitle || t.title;
+        tr.appendChild(titleCell);
+
+        const statuses = t.statuses || [];
+        for (let i = 0; i < maxAttempts; i++) {
+          const status = statuses[i];
+          const td = document.createElement("td");
+          const div = document.createElement("div");
+          div.classList.add("heatmap-cell");
+
+          if (!status) {
+            div.classList.add("heatmap-unknown");
+          } else if (status === "passed") {
+            div.classList.add("heatmap-passed");
+          } else if (status === "failed") {
+            div.classList.add("heatmap-failed");
+          } else if (status === "timedOut") {
+            div.classList.add("heatmap-timedOut");
+          } else if (status === "skipped") {
+            div.classList.add("heatmap-skipped");
+          } else {
+            div.classList.add("heatmap-unknown");
+          }
+
+          td.appendChild(div);
+          tr.appendChild(td);
+        }
+
+        body.appendChild(tr);
+      });
+    }
+
+    function renderRawJson(run) {
+      const el = document.getElementById("raw-json");
+      el.textContent = JSON.stringify(run, null, 2);
+    }
+
+    function renderCharts(run) {
+      const tests = run.tests || [];
+
+      // Destroy previous charts if they exist
+      if (distributionChart) {
+        distributionChart.destroy();
+        distributionChart = null;
+      }
+      if (durationChart) {
+        durationChart.destroy();
+        durationChart = null;
+      }
+
+      const ctxDistribution = document.getElementById("distributionChart");
+      const ctxDuration = document.getElementById("durationChart");
+
+      const flakyCount = tests.filter(t => t.flakiness === "flaky").length;
+      const failedCount = tests.filter(t => t.flakiness === "failed").length;
+      const stableCount = tests.length - flakyCount - failedCount;
+
+      distributionChart = new Chart(ctxDistribution, {
+        type: "doughnut",
+        data: {
+          labels: ["Stable", "Flaky", "Failed"],
+          datasets: [
+            {
+              data: [stableCount, flakyCount, failedCount],
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            legend: { position: "bottom" },
+          },
+        },
+      });
+
+      // Duration chart
+      const sorted = [...tests].sort((a, b) => (b.duration || 0) - (a.duration || 0));
+      const labels = sorted.map((t, idx) => `#${idx + 1}`);
+      const durations = sorted.map((t) => t.duration || 0);
+
+      durationChart = new Chart(ctxDuration, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Duration (ms)",
+              data: durations,
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: { ticks: { autoSkip: true, maxTicksLimit: 20 } },
+            y: { beginAtZero: true },
+          },
+        },
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    async function loadRun() {
+      const runId = getRunIdFromQuery();
+      if (!runId) {
+        document.getElementById("run-meta").innerHTML =
+          "<strong>Error:</strong> Missing <code>runId</code> in query string.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/runs/${runId}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const run = await res.json();
+        currentRun = run;
+
+        renderRunMeta(run);
+        renderOverviewSummary(run);
+        renderTestsTable(run);
+        renderHeatmap(run);
+        renderRawJson(run);
+        renderCharts(run);
+      } catch (err) {
+        document.getElementById("run-meta").innerHTML =
+          "<strong>Error loading run:</strong> " + escapeHtml(String(err));
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initTabs();
+      loadRun();
+    });
+  </script>
+</body>
+</html>
+
